@@ -15,7 +15,9 @@ class PostgresTelemetry:
 
     def __init__(self, conninfo: str) -> None:
         self.conn = psycopg.connect(conninfo, autocommit=True, row_factory=dict_row,
-                                    options="-c timezone=UTC -c search_path=telemetry,fleet,public")
+                                    options="-c timezone=UTC -c search_path=telemetry,fleet,public"
+                                    # generic plans of auto-prepared statements ignore the search point
+                                    " -c plan_cache_mode=force_custom_plan")
         self._sensor_ids: dict[str, int] = {}
         self._event_ids: dict[str, int] = {}
 
@@ -232,17 +234,20 @@ class PostgresTelemetry:
         return [r["track_id"] for r in rows]
 
     def cargo_violations(self, threshold: float) -> list[tuple]:
+        # seq grows with time, so the first violation is min(seq), then one primary key lookup per trip
         rows = self.conn.execute("""
-            SELECT r.track_id, min(p.recorded_at) AS first_at
-            FROM sensor_readings r
-            JOIN track_points p ON p.track_id = r.track_id AND p.seq = r.seq
-            WHERE r.sensor_type_id = (SELECT id FROM sensor_types WHERE code = 'cargo_temp') AND r.value > %s
-            GROUP BY r.track_id ORDER BY 1""", (threshold,))
+            SELECT f.track_id, p.recorded_at AS first_at
+            FROM (SELECT track_id, min(seq) AS seq
+                  FROM sensor_readings
+                  WHERE sensor_type_id = (SELECT id FROM sensor_types WHERE code = 'cargo_temp') AND value > %s
+                  GROUP BY track_id) f
+            JOIN track_points p ON p.track_id = f.track_id AND p.seq = f.seq
+            ORDER BY 1""", (threshold,))
         return [(r["track_id"], r["first_at"]) for r in rows]
 
     def random_locations(self, count: int, seed: int) -> list[tuple[float, float]]:
         rows = self.conn.execute("""
             SELECT lat, lon FROM track_points
-            WHERE (track_id * 7919 + seq * 104729 + %s) %% 50021 = 0 ORDER BY track_id, seq LIMIT %s""",
+            WHERE (track_id * 7919 + seq * 104729 + %s) %% 15013 = 0 ORDER BY track_id, seq LIMIT %s""",
                                  (seed, count))
         return [(r["lat"], r["lon"]) for r in rows]
