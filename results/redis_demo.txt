@@ -1,0 +1,64 @@
+
+=== 1. Hash: current state of every vehicle ===
+  > HSET vehicle:1:state plate ... lat ... lon ... speed ...   (for 8 vehicles)
+  > HGETALL vehicle:1:state
+    {'plate': 'AA1001KA', 'driver': 'Kravchenko Mykola Olehovych', 'lat': '49.465098', 'lon': '32.009522', 'speed': '88.3', 'updated_at': '2026-11-09T14:33:00+00:00'}
+  > HINCRBYFLOAT vehicle:1:state speed 5
+    93.3
+
+=== 2. String with TTL: online status (tracker heartbeat) ===
+  > SET vehicle:<id>:online 1 EX 60   (heartbeat every 30 s, key expires if the tracker is silent)
+    AA1001KA  online, expires in 60 s
+    AA1002KA  online, expires in 60 s
+    AA2001BH  online, expires in 60 s
+    AA2002BH  online, expires in 60 s
+    AA3001CE  online, expires in 60 s
+    AA3002CE  offline
+    AA4001MO  offline
+    AA5001EE  offline
+
+=== 3. Geo: nearest vehicles to a dispatcher call ===
+  > GEOADD fleet:positions <lon> <lat> <plate>   (for every vehicle)
+  > GEOSEARCH fleet:positions FROMLONLAT 30.5234 50.4501 BYRADIUS 150 km ASC COUNT 3 WITHDIST
+    AA5001EE    42.22 km
+    AA4001MO    54.02 km
+    AA3002CE   131.88 km
+  > GEODIST fleet:positions AA1001KA AA1002KA km
+    74.75 km
+
+=== 4. Sorted set: drivers leaderboard by km for 30 days ===
+  > ZADD drivers:km:30d <km> <driver>   (km come from MongoDB aggregation)
+  > ZREVRANGE drivers:km:30d 0 2 WITHSCORES
+    Shevchenko Andrii Petrovych        29771.0 km
+    Tkachenko Vasyl Mykolaiovych       19328.9 km
+    Kovalenko Oleh Ivanovych           15928.7 km
+  > ZINCRBY drivers:km:30d 250 "Melnyk Svitlana Andriivna"   (a new trip finished)
+  > ZREVRANK drivers:km:30d "Melnyk Svitlana Andriivna"
+    place 6 of 6
+
+=== 5. Stream: queue of live tracker messages ===
+  > XADD telemetry:live MAXLEN ~ 10000 * vehicle_id <id> lat <lat> lon <lon> speed <v>   (5 messages)
+  > XGROUP CREATE telemetry:live mongo-writer 0
+  > XREADGROUP GROUP mongo-writer worker-1 COUNT 3 STREAMS telemetry:live >
+    1794407851880-0 {'vehicle_id': '1', 'lat': '49.465098', 'lon': '32.009522', 'speed': '88.3'}
+    1794407851880-1 {'vehicle_id': '2', 'lat': '48.902252', 'lon': '32.571393', 'speed': '90.5'}
+    1794407851881-0 {'vehicle_id': '3', 'lat': '48.620207', 'lon': '29.817518', 'speed': '71.2'}
+  > XACK telemetry:live mongo-writer 1794407851880-0 1794407851880-1 1794407851881-0   (written to MongoDB)
+    acknowledged: 3
+  > XPENDING telemetry:live mongo-writer
+    stream length 5, pending 0
+
+=== 6. Counters: events per day ===
+  > HINCRBY events:2026-11-11 harsh_braking 3  /  speeding 5  /  harsh_braking 1
+  > HGETALL events:2026-11-11
+    {'harsh_braking': '4', 'speeding': '5'}
+
+=== 7. Cache-aside: vehicle statistics from PostgreSQL ===
+    miss: 8 rows from PostgreSQL view v_vehicle_stats, saved with SET ... EX 30, 6.40 ms
+    hit: 8 rows from Redis GET, 0.16 ms
+  > TTL cache:vehicle_stats
+    30 s left
+
+=== Keys created ===
+  > SCAN 0 COUNT 100
+    ['cache:vehicle_stats', 'drivers:km:30d', 'events:2026-11-11', 'fleet:positions', 'telemetry:live', 'vehicle:1:online', 'vehicle:1:state', 'vehicle:2:online', 'vehicle:2:state', 'vehicle:3:online', 'vehicle:3:state', 'vehicle:4:online', 'vehicle:4:state', 'vehicle:5:online', 'vehicle:5:state', 'vehicle:6:state', 'vehicle:7:state', 'vehicle:8:state']

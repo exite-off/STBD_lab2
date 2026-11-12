@@ -1,0 +1,216 @@
+{
+  "environment": {
+    "date": "2026-11-12 15:40 UTC",
+    "python": "3.14.7",
+    "os": "Windows-11-10.0.26300-SP0",
+    "postgres": "16.15",
+    "mongo": "8.3.17"
+  },
+  "load": {
+    "tracks": 2000,
+    "seed": 42,
+    "batch_size": 100,
+    "load_seconds": {
+      "PostgreSQL": 311.61,
+      "PostgreSQL JSONB": 12.13,
+      "MongoDB": 5.0
+    },
+    "index_seconds": {
+      "PostgreSQL": 39.91,
+      "MongoDB": 4.39
+    },
+    "postgres": {
+      "tracks": 2000,
+      "points": 958694,
+      "readings": 2750199,
+      "events": 86554,
+      "bytes": 556359680,
+      "jsonb_bytes": 43327488
+    },
+    "mongo": {
+      "tracks": 2000,
+      "bytes": 73838592,
+      "data_bytes": 199953994
+    }
+  },
+  "scenarios": [
+    {
+      "key": "R1",
+      "title": "Read one whole trip (points + sensors + events) by id",
+      "engines": [
+        {
+          "engine": "PostgreSQL (3 queries)",
+          "median_ms": 9.338,
+          "p95_ms": 15.275,
+          "mean_ms": 9.804,
+          "runs": 300,
+          "same_result": true
+        },
+        {
+          "engine": "PostgreSQL (1 query, json_agg)",
+          "median_ms": 18.283,
+          "p95_ms": 24.684,
+          "mean_ms": 18.23,
+          "runs": 300,
+          "same_result": true
+        },
+        {
+          "engine": "PostgreSQL JSONB",
+          "median_ms": 3.758,
+          "p95_ms": 5.158,
+          "mean_ms": 3.781,
+          "runs": 300,
+          "same_result": true
+        },
+        {
+          "engine": "MongoDB",
+          "median_ms": 3.067,
+          "p95_ms": 4.436,
+          "mean_ms": 3.215,
+          "runs": 300,
+          "same_result": true
+        }
+      ]
+    },
+    {
+      "key": "R2",
+      "title": "List trips of a vehicle for the last 30 days (summary only)",
+      "engines": [
+        {
+          "engine": "PostgreSQL",
+          "median_ms": 0.776,
+          "p95_ms": 0.989,
+          "mean_ms": 0.787,
+          "runs": 240,
+          "same_result": true
+        },
+        {
+          "engine": "MongoDB",
+          "median_ms": 1.035,
+          "p95_ms": 1.377,
+          "mean_ms": 1.084,
+          "runs": 240,
+          "same_result": true
+        }
+      ]
+    },
+    {
+      "key": "A1",
+      "title": "Monthly report per vehicle: trips, km, max speed, events",
+      "engines": [
+        {
+          "engine": "PostgreSQL",
+          "median_ms": 8.762,
+          "p95_ms": 9.379,
+          "mean_ms": 8.869,
+          "runs": 5,
+          "same_result": true
+        },
+        {
+          "engine": "MongoDB",
+          "median_ms": 25.828,
+          "p95_ms": 26.36,
+          "mean_ms": 25.871,
+          "runs": 5,
+          "same_result": true
+        }
+      ]
+    },
+    {
+      "key": "A2",
+      "title": "Average speed by hour of day over all GPS points",
+      "engines": [
+        {
+          "engine": "PostgreSQL",
+          "median_ms": 307.62,
+          "p95_ms": 308.316,
+          "mean_ms": 306.85,
+          "runs": 5,
+          "same_result": true
+        },
+        {
+          "engine": "MongoDB",
+          "median_ms": 603.005,
+          "p95_ms": 639.293,
+          "mean_ms": 613.382,
+          "runs": 5,
+          "same_result": true
+        }
+      ]
+    },
+    {
+      "key": "G1",
+      "title": "Geo: trips that passed within 300 m of a place during 90 days",
+      "engines": [
+        {
+          "engine": "PostgreSQL",
+          "median_ms": 2.194,
+          "p95_ms": 3.027,
+          "mean_ms": 2.313,
+          "runs": 60,
+          "same_result": true
+        },
+        {
+          "engine": "MongoDB",
+          "median_ms": 2.513,
+          "p95_ms": 4.654,
+          "mean_ms": 2.976,
+          "runs": 60,
+          "same_result": true
+        }
+      ]
+    },
+    {
+      "key": "F1",
+      "title": "Flexible schema: reefer trips where cargo was warmer than 8 C",
+      "engines": [
+        {
+          "engine": "PostgreSQL",
+          "median_ms": 25.705,
+          "p95_ms": 27.826,
+          "mean_ms": 26.135,
+          "runs": 10,
+          "same_result": true
+        },
+        {
+          "engine": "MongoDB",
+          "median_ms": 11.56,
+          "p95_ms": 12.104,
+          "mean_ms": 11.469,
+          "runs": 10,
+          "same_result": true
+        }
+      ]
+    },
+    {
+      "key": "W2",
+      "title": "Live tracker: append one point to an active trip (10 trips x 100 points)",
+      "engines": [
+        {
+          "engine": "PostgreSQL",
+          "median_ms": 47.937,
+          "p95_ms": 51.867,
+          "mean_ms": 47.883,
+          "runs": 1000,
+          "same_result": true
+        },
+        {
+          "engine": "PostgreSQL JSONB",
+          "median_ms": 8.095,
+          "p95_ms": 9.088,
+          "mean_ms": 8.115,
+          "runs": 1000,
+          "same_result": true
+        },
+        {
+          "engine": "MongoDB",
+          "median_ms": 4.554,
+          "p95_ms": 5.415,
+          "mean_ms": 4.602,
+          "runs": 1000,
+          "same_result": true
+        }
+      ]
+    }
+  ]
+}

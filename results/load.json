@@ -1,0 +1,27 @@
+{
+  "tracks": 2000,
+  "seed": 42,
+  "batch_size": 100,
+  "load_seconds": {
+    "PostgreSQL": 311.61,
+    "PostgreSQL JSONB": 12.13,
+    "MongoDB": 5.0
+  },
+  "index_seconds": {
+    "PostgreSQL": 39.91,
+    "MongoDB": 4.39
+  },
+  "postgres": {
+    "tracks": 2000,
+    "points": 958694,
+    "readings": 2750199,
+    "events": 86554,
+    "bytes": 556359680,
+    "jsonb_bytes": 43327488
+  },
+  "mongo": {
+    "tracks": 2000,
+    "bytes": 73838592,
+    "data_bytes": 199953994
+  }
+}
